@@ -3,6 +3,7 @@ module terraform-provider-seowan-ossca
 go 1.21
 
 require (
+	github.com/hashicorp-demoapp/hashicups-client-go v0.1.0
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/terraform-plugin-docs v0.19.2
 	github.com/hashicorp/terraform-plugin-framework v1.8.0
