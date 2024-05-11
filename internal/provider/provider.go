@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
   
-	"github.com/hashicorp-demoapp/hashicups-client-go"
+	"github.com/ptptsw/hashicups-client-go"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
@@ -193,5 +193,8 @@ func (p *hashicupsProvider) DataSources(_ context.Context) []func() datasource.D
 
 // Resources defines the resources implemented in the provider.
 func (p *hashicupsProvider) Resources(_ context.Context) []func() resource.Resource {
-    return nil
+	return nil
+	return []func() resource.Resource{
+        NewFoodResource,
+    }
 }
