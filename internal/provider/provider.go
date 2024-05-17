@@ -37,7 +37,7 @@ type hashicupsProvider struct {
 }
 
 // hashicupsProviderModel maps provider schema data to a Go type.
-type hashicupsProviderModel struct {
+type seowanProviderModel struct {
     Host     types.String `tfsdk:"host"`
     Username types.String `tfsdk:"username"`
     Password types.String `tfsdk:"password"`
@@ -70,7 +70,7 @@ func (p *hashicupsProvider) Schema(_ context.Context, _ provider.SchemaRequest, 
 
 func (p *hashicupsProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
     // Retrieve provider data from configuration
-    var config hashicupsProviderModel
+    var config seowanProviderModel
     diags := req.Config.Get(ctx, &config)
     resp.Diagnostics.Append(diags...)
     if resp.Diagnostics.HasError() {
@@ -83,8 +83,8 @@ func (p *hashicupsProvider) Configure(ctx context.Context, req provider.Configur
     if config.Host.IsUnknown() {
         resp.Diagnostics.AddAttributeError(
             path.Root("host"),
-            "Unknown HashiCups API Host",
-            "The provider cannot create the HashiCups API client as there is an unknown configuration value for the HashiCups API host. "+
+            "Unknown seowan API Host",
+            "The provider cannot create the seowan API client as there is an unknown configuration value for the HashiCups API host. "+
                 "Either target apply the source of the value first, set the value statically in the configuration, or use the HASHICUPS_HOST environment variable.",
         )
     }
@@ -92,8 +92,8 @@ func (p *hashicupsProvider) Configure(ctx context.Context, req provider.Configur
     if config.Username.IsUnknown() {
         resp.Diagnostics.AddAttributeError(
             path.Root("username"),
-            "Unknown HashiCups API Username",
-            "The provider cannot create the HashiCups API client as there is an unknown configuration value for the HashiCups API username. "+
+            "Unknown seowan API Username",
+            "The provider cannot create the seowan API client as there is an unknown configuration value for the HashiCups API username. "+
                 "Either target apply the source of the value first, set the value statically in the configuration, or use the HASHICUPS_USERNAME environment variable.",
         )
     }
@@ -101,8 +101,8 @@ func (p *hashicupsProvider) Configure(ctx context.Context, req provider.Configur
     if config.Password.IsUnknown() {
         resp.Diagnostics.AddAttributeError(
             path.Root("password"),
-            "Unknown HashiCups API Password",
-            "The provider cannot create the HashiCups API client as there is an unknown configuration value for the HashiCups API password. "+
+            "Unknown seowan API Password",
+            "The provider cannot create the seowan API client as there is an unknown configuration value for the HashiCups API password. "+
                 "Either target apply the source of the value first, set the value statically in the configuration, or use the HASHICUPS_PASSWORD environment variable.",
         )
     }
@@ -114,9 +114,9 @@ func (p *hashicupsProvider) Configure(ctx context.Context, req provider.Configur
     // Default values to environment variables, but override
     // with Terraform configuration value if set.
 
-    host := os.Getenv("HASHICUPS_HOST")
-    username := os.Getenv("HASHICUPS_USERNAME")
-    password := os.Getenv("HASHICUPS_PASSWORD")
+    host := os.Getenv("SEOWAN_HOST")
+    username := os.Getenv("SEOWAN_USERNAME")
+    password := os.Getenv("SEOWAN_PASSWORD")
 
     if !config.Host.IsNull() {
         host = config.Host.ValueString()
@@ -171,10 +171,10 @@ func (p *hashicupsProvider) Configure(ctx context.Context, req provider.Configur
     client, err := hashicups.NewClient(&host, &username, &password)
     if err != nil {
         resp.Diagnostics.AddError(
-            "Unable to Create HashiCups API Client",
-            "An unexpected error occurred when creating the HashiCups API client. "+
+            "Unable to Create SEOWAN API Client",
+            "An unexpected error occurred when creating the SEOWAN API client. "+
                 "If the error is not clear, please contact the provider developers.\n\n"+
-                "HashiCups Client Error: "+err.Error(),
+                "SEOWAN Client Error: "+err.Error(),
         )
         return
     }
@@ -193,7 +193,7 @@ func (p *hashicupsProvider) DataSources(_ context.Context) []func() datasource.D
 
 // Resources defines the resources implemented in the provider.
 func (p *hashicupsProvider) Resources(_ context.Context) []func() resource.Resource {
-	return nil
+	// return nil
 	return []func() resource.Resource{
         NewFoodResource,
     }
