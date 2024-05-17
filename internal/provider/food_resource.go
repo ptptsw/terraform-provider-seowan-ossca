@@ -9,6 +9,8 @@ import (
 	"github.com/ptptsw/hashicups-client-go"
     "github.com/hashicorp/terraform-plugin-framework/resource"
     "github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"    
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
     "github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -71,6 +73,9 @@ func (r *foodResource) Schema(_ context.Context, _ resource.SchemaRequest, resp 
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
                 Computed: true,
+				PlanModifiers: []planmodifier.String{                    
+					stringplanmodifier.UseStateForUnknown(),                
+				},
             },
             "last_updated": schema.StringAttribute{
                 Computed: true,
@@ -111,7 +116,7 @@ func (r *foodResource) Create(ctx context.Context, req resource.CreateRequest, r
 
 	}
 
-	food, err := r.client.CreateFood(items)
+	food, err := r.client.CreateFood(items,nil)
     if err != nil {
         resp.Diagnostics.AddError(
             "Error creating food",
@@ -144,11 +149,11 @@ func (r *foodResource) Read(ctx context.Context, req resource.ReadRequest, resp 
     if resp.Diagnostics.HasError() {
         return
 	}
-	food, err := r.client.GetFood(state.ID.ValueString())
+	food, err := r.client.GetFood(state.ID.ValueString(), nil)
     if err != nil {
         resp.Diagnostics.AddError(
-            "Error Reading HashiCups Food",
-            "Could not read HashiCups food ID "+state.ID.ValueString()+": "+err.Error(),
+            "Error Reading hashicups Food",
+            "Could not read hashicups food ID "+state.ID.ValueString()+": "+err.Error(),
         )
         return
 	}
@@ -172,8 +177,79 @@ func (r *foodResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 
 // Update updates the resource and sets the updated Terraform state on success.
 func (r *foodResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+    // Retrieve values from plan
+    var plan foodResourceModel
+    diags := req.Plan.Get(ctx, &plan)
+    resp.Diagnostics.Append(diags...)
+    if resp.Diagnostics.HasError() {
+        return
+    }
+
+    // Generate API request body from plan
+    var hashicupsItems []hashicups.FoodItem
+    for _, item := range plan.Items {
+        hashicupsItems = append(hashicupsItems, hashicups.FoodItem{
+            Name: item.Name.ValueString(),
+            Price: item.Price.ValueFloat64(),
+        })
+    }
+
+
+    //Update existing food
+    _, err := r.client.UpdateFood(plan.ID.ValueString(), hashicupsItems, nil)
+    if err != nil {
+        resp.Diagnostics.AddError(
+			"Error Updating HashiCups Food",
+            "Could not update food, unexpected error: "+err.Error(),
+        )
+        return
+    }
+
+    // Fetch updated items from GetFood as UpdateFood items are not
+    // populated.
+    food, err := r.client.GetFood(plan.ID.ValueString(), nil)
+    if err != nil {
+        resp.Diagnostics.AddError(
+            "Error Reading HashiCups Food",
+            "Could not read HashiCups food ID "+plan.ID.ValueString()+": "+err.Error(),
+        )
+        return
+    }
+
+    // Update resource state with updated items and timestamp
+    plan.Items = []foodItemModel{}
+    for _, item := range food.Items {
+        plan.Items = append(plan.Items, foodItemModel{
+			Name : types.StringValue(item.Name),
+            Price: types.Float64Value(item.Price),
+        })
+    }
+    plan.LastUpdated = types.StringValue(time.Now().Format(time.RFC850))
+
+    diags = resp.State.Set(ctx, plan)
+    resp.Diagnostics.Append(diags...)
+    if resp.Diagnostics.HasError() {
+        return
+    }
 }
 
 // Delete deletes the resource and removes the Terraform state on success.
 func (r *foodResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-}
+	// Retrieve values from state
+		var state foodResourceModel
+		diags := req.State.Get(ctx, &state)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	
+		// Delete existing food
+		err := r.client.DeleteFood(state.ID.ValueString(), nil)
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error Deleting HashiCups Food",
+				"Could not delete food, unexpected error: "+err.Error(),
+			)
+			return
+		}
+	}
